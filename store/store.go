@@ -7,7 +7,11 @@ import (
 
 type URLStore struct {
 	urls map[string]string
-	mu sync.RWMutex
+	mu   sync.RWMutex
+}
+
+type Record struct {
+	key, URL string
 }
 
 func (s *URLStore) Get(key string) string {
@@ -27,9 +31,9 @@ func (s *URLStore) Set(key, url string) bool {
 	return true
 }
 
-func (s *URLStore) Put(url string) string  {
+func (s *URLStore) Put(url string) string {
 	for {
-		key := arith.Short(len(url))
+		key := arith.Short(s.Count())
 		if s.Set(key, url) {
 			return key
 		}
@@ -44,6 +48,6 @@ func (s *URLStore) Count() int {
 	return len(s.urls)
 }
 
-func NewURLStore() *URLStore  {
+func NewURLStore() *URLStore {
 	return &URLStore{urls: make(map[string]string)}
 }
