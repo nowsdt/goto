@@ -40,5 +40,5 @@ func Redirect(w http.ResponseWriter, r *http.Request) {
 }
 
 func init() {
-	store = NewURLStore()
+	store = NewURLStore("store.gob")
 }
