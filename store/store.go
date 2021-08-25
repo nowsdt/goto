@@ -50,10 +50,13 @@ func (s *URLStore) Set(key, url *string) error {
 }
 
 func (s *URLStore) Put(url, key *string) error {
+	var err error
 	for {
 		*key = arith.Short(s.count())
-		if err := s.Set(key, url); err != nil {
+		if err = s.Set(key, url); err == nil {
 			break
+		} else {
+			return err
 		}
 	}
 
@@ -114,6 +117,7 @@ func (s *URLStore) load(filename string) error {
 		var r record
 		if err = decoder.Decode(&r); err == nil {
 			s.Set(&r.Key, &r.URL)
+			log.Printf("k:%s,v:%s loaded\n", r.Key, r.URL)
 		}
 	}
 	if err == io.EOF {

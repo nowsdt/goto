@@ -27,10 +27,7 @@ var (
 var store st.Store
 
 func main() {
-
-	http.HandleFunc("/", Redirect)
-	http.HandleFunc("/add", Add)
-	http.ListenAndServe(fmt.Sprintf("%s:%s", host, port), nil)
+	log.Println(*port, *host, *rpcEnabled, *masterAddr, *fileName)
 
 	if len(*masterAddr) != 0 {
 		store = client.NewProxyStore(*masterAddr)
@@ -41,6 +38,13 @@ func main() {
 	if *rpcEnabled {
 		rpc.RegisterName("Store", store)
 		rpc.HandleHTTP()
+	}
+
+	http.HandleFunc("/", Redirect)
+	http.HandleFunc("/add", Add)
+	err := http.ListenAndServe(fmt.Sprintf(":%s", *port), nil)
+	if err != nil {
+		log.Fatal(err)
 	}
 }
 
@@ -58,8 +62,12 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var k string
-	key := store.Put(&url, &k)
-	fmt.Fprintf(w, "http://localhost:8080/%s", key)
+	err := store.Put(&url, &k)
+	if err != nil {
+		fmt.Fprintf(w, "add failed，err:%s", err)
+		return
+	}
+	fmt.Fprintf(w, "http://localhost:8080/%s", k)
 }
 
 func Redirect(w http.ResponseWriter, r *http.Request) {
