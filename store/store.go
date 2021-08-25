@@ -58,7 +58,7 @@ func (s *URLStore) Count() int {
 
 func NewURLStore(filename string) *URLStore {
 	s := &URLStore{urls: make(map[string]string)}
-	f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND, 0644)
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 	if err != nil {
 		log.Fatal("URLStore:", err)
 	}
