@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"net/rpc"
+	"os"
+	"time"
 )
 
 var AddForm = `
@@ -25,6 +27,7 @@ var (
 )
 
 var store st.Store
+var shutdown = make(chan int, 1)
 
 func main() {
 	log.Println(*port, *host, *rpcEnabled, *masterAddr, *fileName)
@@ -42,15 +45,31 @@ func main() {
 
 	http.HandleFunc("/", Redirect)
 	http.HandleFunc("/add", Add)
+	http.HandleFunc("/shutdown", Shutdown)
+
 	err := http.ListenAndServe(fmt.Sprintf(":%s", *port), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
+func waitForShutdown() {
+	go func() {
+		<-shutdown
+		log.Println("receive shutdown")
+		for i := 5; i > 0; i-- {
+			time.Sleep(1 * time.Second)
+			log.Printf("shutdown count %d", i)
+		}
+		log.Println("bye")
+		os.Exit(0)
+	}()
+}
+
 func init() {
 	flag.Parse()
-	log.SetFlags(log.Llongfile)
+	log.SetFlags(log.LstdFlags | log.Llongfile)
+	waitForShutdown()
 }
 
 func Add(w http.ResponseWriter, r *http.Request) {
@@ -68,6 +87,12 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, "http://localhost:8080/%s", k)
+}
+
+func Shutdown(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "server will shutdown after %s s", "5")
+	// shutdown signal
+	shutdown <- 1
 }
 
 func Redirect(w http.ResponseWriter, r *http.Request) {

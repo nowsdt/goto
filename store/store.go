@@ -22,6 +22,7 @@ type URLStore struct {
 type Store interface {
 	Put(url, key *string) error
 	Get(key, url *string) error
+	Sync(u *int, urls *map[string]string) error
 }
 
 type record struct {
@@ -29,6 +30,8 @@ type record struct {
 }
 
 func (s *URLStore) Get(key, url *string) error {
+	log.Printf("URLStore get,{%s}\n", *key)
+
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if u, ok := s.urls[*key]; ok {
@@ -39,6 +42,11 @@ func (s *URLStore) Get(key, url *string) error {
 }
 
 func (s *URLStore) Set(key, url *string) error {
+	log.Printf("URLStore set, {%s},{%s}\n", *key, *url)
+	if len(*key) == 0 || len(*url) == 0 {
+		return errors.New("key or url is empty")
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if utils.ContainsValue(s.urls, *url) {
@@ -54,6 +62,7 @@ func (s *URLStore) Put(url, key *string) error {
 	for {
 		*key = arith.Short(s.count())
 		if err = s.Set(key, url); err == nil {
+			log.Println("URLStore put")
 			break
 		} else {
 			return err
@@ -117,7 +126,7 @@ func (s *URLStore) load(filename string) error {
 		var r record
 		if err = decoder.Decode(&r); err == nil {
 			s.Set(&r.Key, &r.URL)
-			log.Printf("k:%s,v:%s loaded\n", r.Key, r.URL)
+			log.Printf("k:%s loaded\n", r.Key)
 		}
 	}
 	if err == io.EOF {
@@ -125,4 +134,9 @@ func (s *URLStore) load(filename string) error {
 	}
 
 	return err
+}
+
+func (s *URLStore) Sync(_ *int, urls *map[string]string) error {
+	*urls = s.urls
+	return nil
 }
